@@ -1,0 +1,13 @@
+<?php
+/**
+ * Copy this file to config/config.php, and edit the values accordingly.
+ *
+ * The milestone identifier can be found in the URL for any given milestone
+ * when browsing milestones on GitHub.
+ */
+return array(
+    'token'     => '', // Github API token
+    'user'      => '', // Your user or organization
+    'repo'      => '', // The repository you're getting the changelog for
+    'milestone' => 0,  // The milestone ID
+);
