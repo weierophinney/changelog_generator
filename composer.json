@@ -1,4 +1,20 @@
  {
+    "name": "phly/changelog-generator",
+    "description": "Generate Markdown changelogs from your GitHub milestones",
+    "type": "library",
+    "keywords": [
+      "github",
+      "changelog"
+    ],
+    "license": "BSD-2-Clause",
+    "authors": [
+      {
+        "name": "Matthew Weier O'Phinney",
+        "email": "matthew@weierophinney.net",
+        "homepage": "http://mwop.net",
+        "role": "Developer"
+      }
+    ],
     "bin": [
         "changelog_generator.php"
     ],
