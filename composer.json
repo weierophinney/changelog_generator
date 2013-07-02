@@ -1,5 +1,8 @@
  {
-   "require": {
-     "zendframework/zend-http": "2.*"
-   }
+    "bin": [
+        "changelog_generator.php"
+    ],
+    "require": {
+      "zendframework/zend-http": "2.*"
+    }
  }
