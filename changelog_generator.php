@@ -65,7 +65,11 @@ if ($error) {
 echo "Total issues resolved: **" . count($issues) . "**\n";
 
 foreach ($issues as $index => $issue) {
-    $issues[$issue->number] = sprintf('- [%d: %s](%s)', $issue->number, $issue->title, $issue->html_url);
+    $title = $issue->title;
+    $title = htmlentities($title, ENT_COMPAT, 'UTF-8');
+    $title = str_replace(array('[', ']', '_'), array('&#91;', '&#92;', '&#95;'), $title);
+
+    $issues[$issue->number] = sprintf('- [%d: %s](%s)', $issue->number, $title, $issue->html_url);
     unset($issues[$index]);
 }
 ksort($issues);

@@ -28,6 +28,6 @@ PHP interpreter, and pipe the output to a file:
 php changelog_generator.php > changelog.md
 ```
 
-Note: You may need to scrub the generated changelog slightly, particularly if
-any issue titles include any of the characters `][><`, as these may break the
-generated markdown.
+The script ensures that any special characters that might break the generated
+links are scrubbed and substituted with the corresponding HTML entities; as 
+such, the script should be generally usable unattended.
