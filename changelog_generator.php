@@ -1,7 +1,36 @@
+#!/usr/bin/env php
 <?php
-require __DIR__ . '/vendor/autoload.php';
+/**
+ * Generate a markdown changelog based on a GitHub milestone.
+ *
+ * @link      https://github.com/weierophinney/changelog_generator for the canonical source repository
+ * @copyright Copyright (c) 2013 Matthew Weier O'Phinney (http://mwop.net/)
+ * @license   https://github.com/weierophinney/changelog_generator/blob/master/LICENSE.md New BSD License
+ */
 ini_set('display_errors', true);
 error_reporting(E_ALL | E_STRICT);
+
+// Autoloading based on phpunit's approach
+$autoloadLocations = array(
+    __DIR__ . '/vendor/autoload.php',
+    __DIR__ . '/../../vendor/autoload.php',
+    __DIR__ . '/../../../../autoload.php',
+);
+$autoloaderLoaded  = false;
+
+foreach ($autoloadLocations as $location) {
+    if (!file_exists($location)) {
+        continue;
+    }
+    require $location;
+    $autoloaderLoaded  = true;
+    break;
+}
+
+if (!$autoloaderLoaded) {
+    file_put_contents('php://stderr', "Failed to discover autoloader; please install dependencies and/or install via Composer.\n");
+    exit(1);
+}
 
 $config = include __DIR__ . '/config/config.php';
 if (false === $config) {
