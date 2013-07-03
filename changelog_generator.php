@@ -58,8 +58,8 @@ do {
 } while (!$done && !$error && ($i < 5));
 
 if ($error) {
-    var_export($error);
-    exit(0);
+    fwrite(STDERR, sprintf("Github API returned error message [%s]\n", $error->message));
+    exit(1);
 }
 
 echo "Total issues resolved: **" . count($issues) . "**\n";
