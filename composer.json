@@ -19,6 +19,7 @@
         "changelog_generator.php"
     ],
     "require": {
+      "zendframework/zend-console": "2.*",
       "zendframework/zend-http": "2.*"
     }
  }
