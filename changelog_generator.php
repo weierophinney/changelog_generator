@@ -58,7 +58,7 @@ do {
 } while (!$done && !$error && ($i < 5));
 
 if ($error) {
-    fwrite(STDERR,sprintf("Github API returned error message [%s]\n",$error->message));
+    fwrite(STDERR, sprintf("Github API returned error message [%s]\n", $error->message));
     exit(1);
 }
 
