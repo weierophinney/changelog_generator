@@ -12,22 +12,22 @@ error_reporting(E_ALL | E_STRICT);
 
 // Autoloading based on phpunit's approach
 $autoloadLocations = array(
-    getcwd() . '/vendor/autoload.php',
     __DIR__ . '/vendor/autoload.php',
     __DIR__ . '/../../autoload.php',
+    getcwd() . '/vendor/autoload.php',
 );
-$autoloaderLoaded  = false;
 
 foreach ($autoloadLocations as $location) {
     if (!file_exists($location)) {
         continue;
     }
-    require $location;
-    $autoloaderLoaded  = true;
+
+    $autoloader = require $location;
+
     break;
 }
 
-if (!$autoloaderLoaded) {
+if (! (isset($autoloader) && $autoloader)) {
     file_put_contents('php://stderr', "Failed to discover autoloader; please install dependencies and/or install via Composer.\n");
     exit(1);
 }
