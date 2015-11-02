@@ -59,9 +59,16 @@ do {
     $response = $client->send();
     $json     = $response->getBody();
     $payload  = json_decode($json);
+
     if (!is_array($payload)) {
-        $error = $payload;
+        file_put_contents(
+            'php://stderr',
+            sprintf("Github API returned error message [%s]\n", is_object($payload) ? $payload->message : $json)
+        );
+
+        exit(1);
     }
+
     if (is_array($payload)) {
         $issues = array_merge($issues, $payload);
         $linkHeader = $response->getHeaders()->get('Link');
@@ -80,12 +87,7 @@ do {
         }
     }
     $i += 1;
-} while (!$done && !$error && ($i < 5));
-
-if ($error) {
-    file_put_contents('php://stderr', sprintf("Github API returned error message [%s]\n", $error->message));
-    exit(1);
-}
+} while (!$done && ($i < 5));
 
 echo "Total issues resolved: **" . count($issues) . "**\n";
 
