@@ -49,7 +49,17 @@ $headers = $request->getHeaders();
 
 $headers->addHeaderLine("Authorization", "token $token");
 
-$client->setUri("https://api.github.com/repos/$user/$repo/issues?milestone=$milestone&state=closed&per_page=100");
+
+//https://api.github.com/search/issues?q=milestone%3A1.0.0%20repo:Roave/BetterReflection
+//$client->setUri("https://api.github.com/repos/$user/$repo/issues?milestone=$milestone&state=closed&per_page=100");
+//$client->setUri("https://api.github.com/repos/$user/$repo/milestones/$milestone&state=closed&per_page=100");
+$client->setUri(
+    'https://api.github.com/search/issues?q=' . urlencode(
+        'milestone:' . $milestone
+        .' repo:' . $user . '/' . $repo
+        . ' state:closed'
+    )
+);
 $client->setMethod('GET');
 $issues = array();
 $error  = false;
@@ -59,12 +69,21 @@ do {
 
     $response = $client->send();
     $json     = $response->getBody();
-    $payload  = json_decode($json);
+    $payload  = json_decode($json, true);
 
-    if (!is_array($payload)) {
+    if (! (is_array($payload) && isset($payload['items']))) {
         file_put_contents(
             'php://stderr',
             sprintf("Github API returned error message [%s]\n", is_object($payload) ? $payload->message : $json)
+        );
+
+        exit(1);
+    }
+
+    if (isset($payload['items']) && ! isset($payload['items']['incomplete_results'])) {
+        file_put_contents(
+            'php://stderr',
+            sprintf("Github API returned incomplete results [%s]\n", $json)
         );
 
         exit(1);
