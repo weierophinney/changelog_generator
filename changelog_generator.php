@@ -52,10 +52,12 @@ $headers->addHeaderLine("Authorization", "token $token");
 $client->setUri("https://api.github.com/repos/$user/$repo/issues?milestone=$milestone&state=closed&per_page=100");
 $client->setMethod('GET');
 $issues = array();
-$done   = false;
 $error  = false;
 $i      = 0;
+
 do {
+    var_dump('crunching');
+
     $response = $client->send();
     $json     = $response->getBody();
     $payload  = json_decode($json);
@@ -69,25 +71,25 @@ do {
         exit(1);
     }
 
-    if (is_array($payload)) {
-        $issues = array_merge($issues, $payload);
-        $linkHeader = $response->getHeaders()->get('Link');
-        if (!$linkHeader) {
-            $done = true;
-        }
-        if ($linkHeader) {
-            $links = $linkHeader->getFieldValue();
-            $links = explode(', ', $links);
-            foreach ($links as $link) {
-                $matches = array();
-                if (preg_match('#<(?P<url>.*)>; rel="next"#', $link, $matches)) {
-                    $client->setUri($matches['url']);
-                }
-            }
+    $issues = array_merge($issues, $payload);
+    $linkHeader = $response->getHeaders()->get('Link');
+
+    if (! $linkHeader) {
+        break;
+    }
+
+    foreach (explode(', ', $linkHeader->getFieldValue()) as $link) {
+        $matches = array();
+
+        if (preg_match('#<(?P<url>.*)>; rel="next"#', $link, $matches)) {
+            $client->setUri($matches['url']);
+
+            continue 2;
         }
     }
-    $i += 1;
-} while (!$done && ($i < 5));
+
+    break; // yay for tail recursion emulation =_=
+} while (true);
 
 echo "Total issues resolved: **" . count($issues) . "**\n";
 
