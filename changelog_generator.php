@@ -78,8 +78,6 @@ $issues = array();
 $error  = false;
 
 do {
-    var_dump('crunching');
-
     $response = $client->send();
     $json     = $response->getBody();
     $payload  = json_decode($json, true);
@@ -129,7 +127,7 @@ foreach ($issues as $index => $issue) {
     $title = htmlentities($title, ENT_COMPAT, 'UTF-8');
     $title = str_replace(array('[', ']', '_'), array('&#91;', '&#92;', '&#95;'), $title);
 
-    $issues[$issue->number] = sprintf('- [%d: %s](%s)', $issue['number'], $title, $issue['html_url']);
+    $issues[$issue['number']] = sprintf('- [%d: %s](%s)', $issue['number'], $title, $issue['html_url']);
     unset($issues[$index]);
 }
 ksort($issues);
