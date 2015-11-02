@@ -53,13 +53,26 @@ $headers->addHeaderLine("Authorization", "token $token");
 //https://api.github.com/search/issues?q=milestone%3A1.0.0%20repo:Roave/BetterReflection
 //$client->setUri("https://api.github.com/repos/$user/$repo/issues?milestone=$milestone&state=closed&per_page=100");
 //$client->setUri("https://api.github.com/repos/$user/$repo/milestones/$milestone&state=closed&per_page=100");
+$client->setUri("https://api.github.com/repos/$user/$repo/milestones/$milestone");
+
+$milestoneResponseBody = $client->send()->getBody();
+$milestonePayload      = json_decode($milestoneResponseBody, true);
+
+if (! isset($milestonePayload['title'])) {
+    file_put_contents(
+        'php://stderr',
+        sprintf("Provided milestone ID [%s] does not exist: %s\n", $milestone, $milestoneResponseBody)
+    );
+}
+
 $client->setUri(
     'https://api.github.com/search/issues?q=' . urlencode(
-        'milestone:' . $milestone
+        'milestone:' . $milestonePayload['title']
         .' repo:' . $user . '/' . $repo
         . ' state:closed'
     )
 );
+
 $client->setMethod('GET');
 $issues = array();
 $error  = false;
@@ -112,7 +125,7 @@ do {
 echo "Total issues resolved: **" . count($issues) . "**\n";
 
 foreach ($issues as $index => $issue) {
-    $title = $issue->title;
+    $title = $issue['title'];
     $title = htmlentities($title, ENT_COMPAT, 'UTF-8');
     $title = str_replace(array('[', ']', '_'), array('&#91;', '&#92;', '&#95;'), $title);
 
