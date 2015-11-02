@@ -74,13 +74,13 @@ do {
     if (! (is_array($payload) && isset($payload['items']))) {
         file_put_contents(
             'php://stderr',
-            sprintf("Github API returned error message [%s]\n", is_object($payload) ? $payload->message : $json)
+            sprintf("Github API returned error message [%s]\n", is_object($payload) ? $payload['message'] : $json)
         );
 
         exit(1);
     }
 
-    if (isset($payload['items']) && ! isset($payload['items']['incomplete_results'])) {
+    if (isset($payload['incomplete_results']) && ! isset($payload['incomplete_results'])) {
         file_put_contents(
             'php://stderr',
             sprintf("Github API returned incomplete results [%s]\n", $json)
@@ -89,7 +89,7 @@ do {
         exit(1);
     }
 
-    $issues = array_merge($issues, $payload);
+    $issues = array_merge($issues, $payload['items']);
     $linkHeader = $response->getHeaders()->get('Link');
 
     if (! $linkHeader) {
@@ -116,7 +116,7 @@ foreach ($issues as $index => $issue) {
     $title = htmlentities($title, ENT_COMPAT, 'UTF-8');
     $title = str_replace(array('[', ']', '_'), array('&#91;', '&#92;', '&#95;'), $title);
 
-    $issues[$issue->number] = sprintf('- [%d: %s](%s)', $issue->number, $title, $issue->html_url);
+    $issues[$issue->number] = sprintf('- [%d: %s](%s)', $issue['number'], $title, $issue['html_url']);
     unset($issues[$index]);
 }
 ksort($issues);
