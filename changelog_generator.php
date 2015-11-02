@@ -50,9 +50,6 @@ $headers = $request->getHeaders();
 $headers->addHeaderLine("Authorization", "token $token");
 
 
-//https://api.github.com/search/issues?q=milestone%3A1.0.0%20repo:Roave/BetterReflection
-//$client->setUri("https://api.github.com/repos/$user/$repo/issues?milestone=$milestone&state=closed&per_page=100");
-//$client->setUri("https://api.github.com/repos/$user/$repo/milestones/$milestone&state=closed&per_page=100");
 $client->setUri("https://api.github.com/repos/$user/$repo/milestones/$milestone");
 
 $milestoneResponseBody = $client->send()->getBody();
