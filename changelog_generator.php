@@ -53,7 +53,6 @@ $client->setUri("https://api.github.com/repos/$user/$repo/issues?milestone=$mile
 $client->setMethod('GET');
 $issues = array();
 $error  = false;
-$i      = 0;
 
 do {
     var_dump('crunching');
