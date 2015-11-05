@@ -49,52 +49,82 @@ $headers = $request->getHeaders();
 
 $headers->addHeaderLine("Authorization", "token $token");
 
-$client->setUri("https://api.github.com/repos/$user/$repo/issues?milestone=$milestone&state=closed&per_page=100");
+
+$client->setUri("https://api.github.com/repos/$user/$repo/milestones/$milestone");
+
+$milestoneResponseBody = $client->send()->getBody();
+$milestonePayload      = json_decode($milestoneResponseBody, true);
+
+if (! isset($milestonePayload['title'])) {
+    file_put_contents(
+        'php://stderr',
+        sprintf("Provided milestone ID [%s] does not exist: %s\n", $milestone, $milestoneResponseBody)
+    );
+}
+
+$client->setUri(
+    'https://api.github.com/search/issues?q=' . urlencode(
+        'milestone:' . $milestonePayload['title']
+        .' repo:' . $user . '/' . $repo
+        . ' state:closed'
+    )
+);
+
 $client->setMethod('GET');
 $issues = array();
-$done   = false;
 $error  = false;
-$i      = 0;
+
 do {
     $response = $client->send();
     $json     = $response->getBody();
-    $payload  = json_decode($json);
-    if (!is_array($payload)) {
-        $error = $payload;
-    }
-    if (is_array($payload)) {
-        $issues = array_merge($issues, $payload);
-        $linkHeader = $response->getHeaders()->get('Link');
-        if (!$linkHeader) {
-            $done = true;
-        }
-        if ($linkHeader) {
-            $links = $linkHeader->getFieldValue();
-            $links = explode(', ', $links);
-            foreach ($links as $link) {
-                $matches = array();
-                if (preg_match('#<(?P<url>.*)>; rel="next"#', $link, $matches)) {
-                    $client->setUri($matches['url']);
-                }
-            }
-        }
-    }
-    $i += 1;
-} while (!$done && !$error && ($i < 5));
+    $payload  = json_decode($json, true);
 
-if ($error) {
-    file_put_contents('php://stderr', sprintf("Github API returned error message [%s]\n", $error->message));
-    exit(1);
-}
+    if (! (is_array($payload) && isset($payload['items']))) {
+        file_put_contents(
+            'php://stderr',
+            sprintf("Github API returned error message [%s]\n", is_object($payload) ? $payload['message'] : $json)
+        );
+
+        exit(1);
+    }
+
+    if (isset($payload['incomplete_results']) && ! isset($payload['incomplete_results'])) {
+        file_put_contents(
+            'php://stderr',
+            sprintf("Github API returned incomplete results [%s]\n", $json)
+        );
+
+        exit(1);
+    }
+
+    $issues = array_merge($issues, $payload['items']);
+    $linkHeader = $response->getHeaders()->get('Link');
+
+    if (! $linkHeader) {
+        break;
+    }
+
+    foreach (explode(', ', $linkHeader->getFieldValue()) as $link) {
+        $matches = array();
+
+        if (preg_match('#<(?P<url>.*)>; rel="next"#', $link, $matches)) {
+            $client->setUri($matches['url']);
+
+            continue 2;
+        }
+    }
+
+    break; // yay for tail recursion emulation =_=
+} while (true);
 
 echo "Total issues resolved: **" . count($issues) . "**\n";
 
 foreach ($issues as $index => $issue) {
-    $title = $issue->title;
+    $title = $issue['title'];
     $title = htmlentities($title, ENT_COMPAT, 'UTF-8');
     $title = str_replace(array('[', ']', '_'), array('&#91;', '&#92;', '&#95;'), $title);
 
-    $issues[$issue->number] = sprintf('- [%d: %s](%s)', $issue->number, $title, $issue->html_url);
+    $issues[$issue['number']] = sprintf('- [%d: %s](%s)', $issue['number'], $title, $issue['html_url']);
     unset($issues[$index]);
 }
 ksort($issues);
