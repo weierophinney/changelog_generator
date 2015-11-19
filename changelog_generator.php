@@ -97,7 +97,10 @@ do {
         exit(1);
     }
 
-    $issues = array_merge($issues, $payload['items']);
+    foreach ($payload['items'] as $issue) {
+        $issues[$issue['number']] = $issue;
+    }
+
     $linkHeader = $response->getHeaders()->get('Link');
 
     if (! $linkHeader) {
@@ -119,16 +122,17 @@ do {
 
 echo "Total issues resolved: **" . count($issues) . "**\n";
 
+$textualIssues = [];
+
 foreach ($issues as $index => $issue) {
     $title = $issue['title'];
     $title = htmlentities($title, ENT_COMPAT, 'UTF-8');
     $title = str_replace(array('[', ']', '_'), array('&#91;', '&#92;', '&#95;'), $title);
 
-    $issues[$issue['number']] = sprintf('- [%d: %s](%s)', $issue['number'], $title, $issue['html_url']);
-    unset($issues[$index]);
+    $textualIssues[$index] = sprintf('- [%d: %s](%s)', $issue['number'], $title, $issue['html_url']);
 }
-ksort($issues);
-echo implode("\n", $issues) . "";
+ksort($textualIssues);
+echo implode("\n", $textualIssues) . "";
 
 function getConfig()
 {
