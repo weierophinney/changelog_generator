@@ -128,7 +128,7 @@ foreach ($issues as $index => $issue) {
     unset($issues[$index]);
 }
 ksort($issues);
-echo implode("\n", $issues) . "";
+echo implode("\n", $issues) . PHP_EOL;
 
 function getConfig()
 {
