@@ -60,6 +60,19 @@ if (! isset($milestonePayload['title'])) {
         'php://stderr',
         sprintf("Provided milestone ID [%s] does not exist: %s\n", $milestone, $milestoneResponseBody)
     );
+    $client->setUri("https://api.github.com/repos/$user/$repo/milestones");
+    $milestonesResponseBody = $client->send()->getBody();
+    $milestonesPayload      = json_decode($milestonesResponseBody, true);
+    file_put_contents(
+        'php://stderr',
+        "Existing milestones ID are:" . PHP_EOL
+    );
+    foreach($milestonesPayload as $milestone) {
+        file_put_contents(
+            'php://stderr',
+            "id:" . $milestone['number'] . ' title:' . $milestone['title'] . ' description:' . $milestone['description'] .  PHP_EOL
+        );
+    }
     exit(1);
 }
 
