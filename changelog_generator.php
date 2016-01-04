@@ -60,6 +60,7 @@ if (! isset($milestonePayload['title'])) {
         'php://stderr',
         sprintf("Provided milestone ID [%s] does not exist: %s\n", $milestone, $milestoneResponseBody)
     );
+    exit(1);
 }
 
 $client->setUri(
