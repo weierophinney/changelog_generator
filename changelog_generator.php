@@ -56,22 +56,26 @@ $milestoneResponseBody = $client->send()->getBody();
 $milestonePayload      = json_decode($milestoneResponseBody, true);
 
 if (! isset($milestonePayload['title'])) {
-    file_put_contents(
-        'php://stderr',
-        sprintf("Provided milestone ID [%s] does not exist: %s\n", $milestone, $milestoneResponseBody)
-    );
-    $client->setUri("https://api.github.com/repos/$user/$repo/milestones");
+    fwrite(STDERR, sprintf(
+        'Provided milestone ID [%s] does not exist: %s%s',
+        $milestone,
+        $milestoneResponseBody,
+        PHP_EOL
+    ));
+
+    $client->setUri(sprintf('https://api.github.com/repos/%s/%s/milestones', $user, $repo));
     $milestonesResponseBody = $client->send()->getBody();
-    $milestonesPayload      = json_decode($milestonesResponseBody, true);
-    file_put_contents(
-        'php://stderr',
-        "Existing milestones ID are:" . PHP_EOL
-    );
-    foreach($milestonesPayload as $milestone) {
-        file_put_contents(
-            'php://stderr',
-            "id:" . $milestone['number'] . ' title:' . $milestone['title'] . ' description:' . $milestone['description'] .  PHP_EOL
-        );
+    $milestonesPayload = json_decode($milestonesResponseBody, true);
+
+    fwrite(STDERR, sprintf('Existing milestone IDs are:%s', PHP_EOL));
+    foreach ($milestonesPayload as $milestone) {
+        fwrite(STDERR, sprintf(
+            'id: %s; title: %s; description: %s%s',
+            $milestone['number'],
+            $milestone['title'],
+            $milestone['description'],
+            PHP_EOL
+        ));
     }
     exit(1);
 }
