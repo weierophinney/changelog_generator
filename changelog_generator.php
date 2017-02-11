@@ -142,7 +142,7 @@ foreach ($issues as $index => $issue) {
     $title = htmlentities($title, ENT_COMPAT, 'UTF-8');
     $title = str_replace(array('[', ']', '_'), array('&#91;', '&#92;', '&#95;'), $title);
 
-    $issues[$issue['number']] = sprintf('- [%d: %s](%s)', $issue['number'], $title, $issue['html_url']);
+    $issues[$issue['number']] = sprintf('- [%d: %s](%s) thanks to @%s', $issue['number'], $title, $issue['html_url'], $issue['user']['login']);
     unset($issues[$index]);
 }
 ksort($issues);
