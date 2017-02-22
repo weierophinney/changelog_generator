@@ -18,7 +18,7 @@ $autoloadLocations = array(
 );
 
 foreach ($autoloadLocations as $location) {
-    if (!file_exists($location)) {
+    if (! file_exists($location)) {
         continue;
     }
 
@@ -27,8 +27,11 @@ foreach ($autoloadLocations as $location) {
     break;
 }
 
-if (! (isset($autoloader) && $autoloader)) {
-    file_put_contents('php://stderr', "Failed to discover autoloader; please install dependencies and/or install via Composer.\n");
+if (empty($autoloader)) {
+    file_put_contents(
+        'php://stderr',
+        "Failed to discover autoloader; please install dependencies and/or install via Composer." . PHP_EOL
+    );
     exit(1);
 }
 
@@ -100,7 +103,7 @@ do {
     if (! (is_array($payload) && isset($payload['items']))) {
         file_put_contents(
             'php://stderr',
-            sprintf("Github API returned error message [%s]\n", is_object($payload) ? $payload['message'] : $json)
+            sprintf("Github API returned error message [%s]%s", is_object($payload) ? $payload['message'] : $json, PHP_EOL)
         );
 
         exit(1);
@@ -109,13 +112,16 @@ do {
     if (isset($payload['incomplete_results']) && ! isset($payload['incomplete_results'])) {
         file_put_contents(
             'php://stderr',
-            sprintf("Github API returned incomplete results [%s]\n", $json)
+            sprintf("Github API returned incomplete results [%s]%s", $json, PHP_EOL)
         );
 
         exit(1);
     }
 
-    $issues = array_merge($issues, $payload['items']);
+    foreach ($payload['items'] as $issue) {
+        $issues[$issue['number']] = $issue;
+    }
+
     $linkHeader = $response->getHeaders()->get('Link');
 
     if (! $linkHeader) {
@@ -135,18 +141,20 @@ do {
     break; // yay for tail recursion emulation =_=
 } while (true);
 
-echo "Total issues resolved: **" . count($issues) . "**\n";
+echo "Total issues resolved: **" . count($issues) . "**" . PHP_EOL;
+
+$textualIssues = [];
 
 foreach ($issues as $index => $issue) {
     $title = $issue['title'];
     $title = htmlentities($title, ENT_COMPAT, 'UTF-8');
     $title = str_replace(array('[', ']', '_'), array('&#91;', '&#92;', '&#95;'), $title);
 
-    $issues[$issue['number']] = sprintf('- [%d: %s](%s)', $issue['number'], $title, $issue['html_url']);
-    unset($issues[$index]);
+    $textualIssues[$index] = sprintf('- [%d: %s](%s)', $issue['number'], $title, $issue['html_url']);
 }
-ksort($issues);
-echo implode("\n", $issues) . PHP_EOL;
+
+ksort($textualIssues);
+echo implode(PHP_EOL, $textualIssues) . PHP_EOL;
 
 function getConfig()
 {
@@ -180,11 +188,19 @@ function getConfig()
     if (isset($opts->c)) {
         $userConfig = include $opts->c;
         if (false === $userConfig) {
-            file_put_contents('php://stderr', sprintf("Invalid configuration file specified ('%s')\n", $opts->c));
+            file_put_contents('php://stderr', sprintf(
+                "Invalid configuration file specified ('%s')%s",
+                $opts->c,
+                PHP_EOL
+            ));
             exit(1);
         }
         if (!is_array($userConfig)) {
-            file_put_contents('php://stderr', sprintf("Configuration file ('%s') did not return an array of configuration\n", $opts->c));
+            file_put_contents('php://stderr', sprintf(
+                "Configuration file ('%s') did not return an array of configuration%s",
+                $opts->c,
+                PHP_EOL
+            ));
             exit(1);
         }
         $config = array_merge($config, $userConfig);
@@ -211,7 +227,14 @@ function getConfig()
         || empty($config['repo'])
         || empty($config['milestone'])
     ) {
-        file_put_contents('php://stderr', sprintf("Some configuration is missing; please make sure each of the token, user/organization, repo, and milestone are provided.\nReceived:\n%s\n", var_export($config, 1)));
+        file_put_contents('php://stderr', sprintf(
+            "Some configuration is missing; please make sure each of the token, "
+            . "user/organization, repo, and milestone are provided.%sReceived:%s%s%s",
+            PHP_EOL,
+            PHP_EOL,
+            var_export($config, 1),
+            PHP_EOL
+        ));
         exit(1);
     }
     return $config;
