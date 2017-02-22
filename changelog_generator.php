@@ -188,7 +188,7 @@ function getConfig()
             ));
             exit(1);
         }
-        if (!is_array($userConfig)) {
+        if (! is_array($userConfig)) {
             file_put_contents('php://stderr', sprintf(
                 "Configuration file ('%s') did not return an array of configuration%s",
                 $opts->c,
@@ -256,32 +256,34 @@ function getMilestonePayload($client, $user, $repo, $milestone)
     $milestoneResponseBody = $client->send()->getBody();
     $milestonePayload = json_decode($milestoneResponseBody, true);
 
-    if (!isset($milestonePayload['title'])) {
-        fwrite(STDERR, sprintf(
-            'Provided milestone ID [%s] does not exist: %s%s',
-            $milestone,
-            $milestoneResponseBody,
-            PHP_EOL
-        ));
-
-        $client->setUri(sprintf('https://api.github.com/repos/%s/%s/milestones', $user, $repo));
-        $milestonesResponseBody = $client->send()->getBody();
-        $milestonesPayload = json_decode($milestonesResponseBody, true);
-
-        fwrite(STDERR, sprintf('Existing milestone IDs are:%s', PHP_EOL));
-        foreach ($milestonesPayload as $milestone) {
-            fwrite(STDERR, sprintf(
-                'id: %s; title: %s; description: %s%s',
-                $milestone['number'],
-                $milestone['title'],
-                $milestone['description'],
-                PHP_EOL
-            ));
-        }
-        exit(1);
+    if (isset($milestonePayload['title'])) {
+        return $milestonePayload;
     }
 
-    return $milestonePayload;
+    // Milestone not located; report errors and potential matches
+    fwrite(STDERR, sprintf(
+        'Provided milestone ID [%s] does not exist: %s%s',
+        $milestone,
+        $milestoneResponseBody,
+        PHP_EOL
+    ));
+
+    $client->setUri(sprintf('https://api.github.com/repos/%s/%s/milestones', $user, $repo));
+    $milestonesResponseBody = $client->send()->getBody();
+    $milestonesPayload = json_decode($milestonesResponseBody, true);
+
+    fwrite(STDERR, sprintf('Existing milestone IDs are:%s', PHP_EOL));
+    foreach ($milestonesPayload as $milestone) {
+        fwrite(STDERR, sprintf(
+            'id: %s; title: %s; description: %s%s',
+            $milestone['number'],
+            $milestone['title'],
+            $milestone['description'],
+            PHP_EOL
+        ));
+    }
+
+    exit(1);
 }
 
 /**
@@ -298,8 +300,8 @@ function getMilestoneByTitle($client, $user, $repo, $milestoneTitle)
     $milestoneResponseBody = $client->send()->getBody();
     $milestonesPayload = json_decode($milestoneResponseBody, true);
 
-    foreach($milestonesPayload as $milestonePayload) {
-        if ($milestonePayload['title'] == $milestoneTitle) {
+    foreach( $milestonesPayload as $milestonePayload) {
+        if ($milestonePayload['title'] === $milestoneTitle) {
             return $milestonePayload;
         }
     }
