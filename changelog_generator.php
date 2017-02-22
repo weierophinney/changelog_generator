@@ -243,10 +243,10 @@ function getConfig()
 }
 
 /**
- * @param $client
- * @param $user
- * @param $repo
- * @param $milestone
+ * @param \Zend\Http\Client $client
+ * @param string $user
+ * @param string $repo
+ * @param int $milestone
  * @return mixed
  */
 function getMilestonePayload($client, $user, $repo, $milestone)
@@ -264,33 +264,20 @@ function getMilestonePayload($client, $user, $repo, $milestone)
     fwrite(STDERR, sprintf(
         'Provided milestone ID [%s] does not exist: %s%s',
         $milestone,
-        $milestoneResponseBody,
+        $milestoneResponseBody ?: 'Unknown error',
         PHP_EOL
     ));
 
-    $client->setUri(sprintf('https://api.github.com/repos/%s/%s/milestones', $user, $repo));
-    $milestonesResponseBody = $client->send()->getBody();
-    $milestonesPayload = json_decode($milestonesResponseBody, true);
-
-    fwrite(STDERR, sprintf('Existing milestone IDs are:%s', PHP_EOL));
-    foreach ($milestonesPayload as $milestone) {
-        fwrite(STDERR, sprintf(
-            'id: %s; title: %s; description: %s%s',
-            $milestone['number'],
-            $milestone['title'],
-            $milestone['description'],
-            PHP_EOL
-        ));
-    }
+    reportExistingMilestones($client, $user, $repo);
 
     exit(1);
 }
 
 /**
- * @param $client
- * @param $user
- * @param $repo
- * @param $milestoneTitle
+ * @param \Zend\Http\Client $client
+ * @param string $user
+ * @param string $repo
+ * @param string $milestoneTitle
  * @return mixed
  */
 function getMilestoneByTitle($client, $user, $repo, $milestoneTitle)
@@ -307,10 +294,37 @@ function getMilestoneByTitle($client, $user, $repo, $milestoneTitle)
     }
 
     fwrite(STDERR, sprintf(
-        'Provided milestone title [%s] does not exist: %s',
+        'Provided milestone title [%s] does not exist: %s%s',
         $milestoneTitle,
+        $milestoneResponseBody,
         PHP_EOL
     ));
 
+    reportExistingMilestones($client, $user, $repo);
+
     exit(1);
+}
+
+/**
+ * @param \Zend\Http\Client $client
+ * @param string $user
+ * @param string $repo
+ * @return void
+ */
+function reportExistingMilestones($client, $user, $repo)
+{
+    $client->setUri(sprintf('https://api.github.com/repos/%s/%s/milestones', $user, $repo));
+    $milestonesResponseBody = $client->send()->getBody();
+    $milestonesPayload = json_decode($milestonesResponseBody, true);
+
+    fwrite(STDERR, sprintf('Existing milestone IDs are:%s', PHP_EOL));
+    foreach ($milestonesPayload as $milestone) {
+        fwrite(STDERR, sprintf(
+            'id: %s; title: %s; description: %s%s',
+            $milestone['number'],
+            $milestone['title'],
+            $milestone['description'],
+            PHP_EOL
+        ));
+    }
 }
