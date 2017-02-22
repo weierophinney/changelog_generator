@@ -85,7 +85,7 @@ if (! isset($milestonePayload['title'])) {
 
 $client->setUri(
     'https://api.github.com/search/issues?q=' . urlencode(
-        'milestone:' . $milestonePayload['title']
+        'milestone:"' . str_replace('"', '\"', $milestonePayload['title']) . '"'
         .' repo:' . $user . '/' . $repo
         . ' state:closed'
     )
