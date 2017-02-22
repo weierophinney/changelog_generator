@@ -41,6 +41,16 @@ $token     = $config['token'];       // Github API token
 $user      = $config['user'];        // Your user or organization
 $repo      = $config['repo'];        // The repository you're getting the changelog for
 $milestone = $config['milestone'];   // The milestone ID
+$title     = $config['title'];       // The milestone title which is often the designated version tag
+
+if ($milestone != 0 && $title != '') {
+    fwrite(STDERR, sprintf(
+        'You can\'t specify both a milestone and a milestone title.%s',
+        PHP_EOL
+    ));
+
+    exit(1);
+}
 
 $client = new Zend\Http\Client();
 $client->setOptions(array(
@@ -52,35 +62,10 @@ $headers = $request->getHeaders();
 
 $headers->addHeaderLine("Authorization", "token $token");
 
-
-$client->setUri("https://api.github.com/repos/$user/$repo/milestones/$milestone");
-
-$milestoneResponseBody = $client->send()->getBody();
-$milestonePayload      = json_decode($milestoneResponseBody, true);
-
-if (! isset($milestonePayload['title'])) {
-    fwrite(STDERR, sprintf(
-        'Provided milestone ID [%s] does not exist: %s%s',
-        $milestone,
-        $milestoneResponseBody,
-        PHP_EOL
-    ));
-
-    $client->setUri(sprintf('https://api.github.com/repos/%s/%s/milestones', $user, $repo));
-    $milestonesResponseBody = $client->send()->getBody();
-    $milestonesPayload = json_decode($milestonesResponseBody, true);
-
-    fwrite(STDERR, sprintf('Existing milestone IDs are:%s', PHP_EOL));
-    foreach ($milestonesPayload as $milestone) {
-        fwrite(STDERR, sprintf(
-            'id: %s; title: %s; description: %s%s',
-            $milestone['number'],
-            $milestone['title'],
-            $milestone['description'],
-            PHP_EOL
-        ));
-    }
-    exit(1);
+if (!empty($title)) {
+    $milestonePayload = getMilestoneByTitle($client, $user, $repo, $title);
+} else {
+    $milestonePayload = getMilestonePayload($client, $user, $repo, $milestone);
 }
 
 $client->setUri(
@@ -172,6 +157,7 @@ function getConfig()
             'user|u-s'      => 'GitHub user/organization name',
             'repo|r-s'      => 'GitHub repository name',
             'milestone|m-i' => 'Milestone identifier',
+            'title|v-s'     => 'Milestone title',
         ));
         $opts->parse();
     } catch (Zend\Console\Exception\ExceptionInterface $e) {
@@ -189,6 +175,7 @@ function getConfig()
         'user'      => '',
         'repo'      => '',
         'milestone' => 0,
+        'title'     => '',
     );
 
     if (isset($opts->c)) {
@@ -201,7 +188,7 @@ function getConfig()
             ));
             exit(1);
         }
-        if (!is_array($userConfig)) {
+        if (! is_array($userConfig)) {
             file_put_contents('php://stderr', sprintf(
                 "Configuration file ('%s') did not return an array of configuration%s",
                 $opts->c,
@@ -228,10 +215,19 @@ function getConfig()
         $config['milestone'] = $opts->milestone;
     }
 
-    if (empty($config['token'])
-        || empty($config['user'])
-        || empty($config['repo'])
-        || empty($config['milestone'])
+    if (isset($opts->title)) {
+        $config['title'] = $opts->title;
+    }
+
+    if (
+        (
+            empty($config['token'])
+            || empty($config['user'])
+            || empty($config['repo'])
+        ) && (
+            empty($config['milestone'])
+            && empty($config['title'])
+        )
     ) {
         file_put_contents('php://stderr', sprintf(
             "Some configuration is missing; please make sure each of the token, "
@@ -244,4 +240,91 @@ function getConfig()
         exit(1);
     }
     return $config;
+}
+
+/**
+ * @param \Zend\Http\Client $client
+ * @param string $user
+ * @param string $repo
+ * @param int $milestone
+ * @return mixed
+ */
+function getMilestonePayload($client, $user, $repo, $milestone)
+{
+    $client->setUri("https://api.github.com/repos/$user/$repo/milestones/$milestone");
+
+    $milestoneResponseBody = $client->send()->getBody();
+    $milestonePayload = json_decode($milestoneResponseBody, true);
+
+    if (isset($milestonePayload['title'])) {
+        return $milestonePayload;
+    }
+
+    // Milestone not located; report errors and potential matches
+    fwrite(STDERR, sprintf(
+        'Provided milestone ID [%s] does not exist: %s%s',
+        $milestone,
+        $milestoneResponseBody ?: 'Unknown error',
+        PHP_EOL
+    ));
+
+    reportExistingMilestones($client, $user, $repo);
+
+    exit(1);
+}
+
+/**
+ * @param \Zend\Http\Client $client
+ * @param string $user
+ * @param string $repo
+ * @param string $milestoneTitle
+ * @return mixed
+ */
+function getMilestoneByTitle($client, $user, $repo, $milestoneTitle)
+{
+    $client->setUri("https://api.github.com/repos/$user/$repo/milestones");
+
+    $milestoneResponseBody = $client->send()->getBody();
+    $milestonesPayload = json_decode($milestoneResponseBody, true);
+
+    foreach( $milestonesPayload as $milestonePayload) {
+        if ($milestonePayload['title'] === $milestoneTitle) {
+            return $milestonePayload;
+        }
+    }
+
+    fwrite(STDERR, sprintf(
+        'Provided milestone title [%s] does not exist: %s%s',
+        $milestoneTitle,
+        $milestoneResponseBody,
+        PHP_EOL
+    ));
+
+    reportExistingMilestones($client, $user, $repo);
+
+    exit(1);
+}
+
+/**
+ * @param \Zend\Http\Client $client
+ * @param string $user
+ * @param string $repo
+ * @return void
+ */
+function reportExistingMilestones($client, $user, $repo)
+{
+    $client->setUri(sprintf('https://api.github.com/repos/%s/%s/milestones', $user, $repo));
+    $milestonesResponseBody = $client->send()->getBody();
+    $milestonesPayload = json_decode($milestonesResponseBody, true);
+
+    fwrite(STDERR, sprintf('Existing milestone IDs are:%s', PHP_EOL));
+    foreach ($milestonesPayload as $milestone) {
+        fwrite(STDERR, sprintf(
+            'id: %s; title: %s; description: %s%s',
+            $milestone['number'],
+            $milestone['title'],
+            $milestone['description'],
+            PHP_EOL
+        ));
+    }
 }
